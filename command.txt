@@ -1,0 +1,16 @@
+down(1);
+take_order();
+while(right is clear){
+    right(1);
+}
+if(down is clear){
+    down(2);
+}
+give_the_order();
+if(down is clear){
+    down(1);
+}
+else{
+    right(2);
+}
+give_the_order();

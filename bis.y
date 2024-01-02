@@ -20,9 +20,10 @@ struct ast *newAst(int nodetype, struct ast *l, struct ast *r);
 struct ast *newNum(int integer);
 struct ast *newFlow(int nodetype, struct ast *cond, struct ast *tl, struct ast *el);
 
+
 // освобождение памяти, занятой деревом
 void treeFree(struct ast *);
-int eval(struct ast *a);
+
 struct ast{
     int nodetype;
     struct ast *l;
@@ -43,7 +44,7 @@ struct flow{
 
 void robotFunc(int operations, int step);
 int inRoom(int step);
-
+int eval(struct ast *a);
 
 int Flag;
 int count = 0;
@@ -68,7 +69,7 @@ int give_the_order();
 
 %token OB CB FCB FOB COMMA SEMICOLON
 %token IF ELSE WHILE
-%token IS CLEAR
+%token IS CLEAR AND NOT OR
 %token UP DOWN LEFT RIGHT
 %token TAKEORDER GIVETHEORDER 
 %token <number> NUM
@@ -87,7 +88,10 @@ command: IF OB condition CB FOB action FCB else { $$ = newFlow('I', $3, $6, $8);
 
 else: ELSE FOB action FCB { $$ = newAst('e', $3, NULL); }
 ;
-condition: move IS CLEAR { $$ = newAst('c', $1, NULL); }
+condition: move IS CLEAR { $$ = newAst('N', $1, NULL); }
+| move IS CLEAR OR move IS CLEAR {$$ = newAst('|', $1, $5); }
+| move IS CLEAR AND move IS CLEAR {$$ = newAst('&', $1, $5); }
+| NOT move IS CLEAR {$$ = newAst('!', $2, NULL); }
 ;
 
 action: move base { $$ = newAst('m', $1, $2); }
@@ -156,7 +160,7 @@ int main(void){
     fseek(robotFile, 0, SEEK_SET);
     fscanf(robotFile, "%d ", &ArrRobot[0]);
     fscanf(robotFile, "%d", &ArrRobot[1]);
-    printf("%i - size room, position (%d, %d), check result.txt\n", n, ArrRobot[0], ArrRobot[1]);
+    printf("%i - size, position (%d, %d)\n", n, ArrRobot[0], ArrRobot[1]);
     char *resultFileName = "result.txt";
     FILE* resultFile = fopen(resultFileName, "w");
 
@@ -222,9 +226,13 @@ struct ast *newFlow(int nodetype, struct ast *cond, struct ast *tl, struct ast *
     return (struct ast *)a;
 }
 
+
+    
 int eval(struct ast *a){
     // просто значение, котрое возвращает функция
     int val;    
+    int val1; // для or and not
+    int val2; // для or and not
     int operations;
  
     switch(a->nodetype){
@@ -232,8 +240,38 @@ int eval(struct ast *a){
         case 'a':
             eval(a->l); 
             break;
-       
-        case 'c': 
+
+        case '|':
+            Flag = eval(a->l); 
+            val1 = inRoom(1);
+            Flag = eval(a->r); 
+            val2 = inRoom(1);
+            if (val1 == 'T' || val2 == 'T'){
+                return 'T';
+            } else {
+                return 'F';
+            }
+
+        case '&':
+            Flag = eval(a->l); 
+            val1 = inRoom(1);
+            Flag = eval(a->r); 
+            val2 = inRoom(1);
+            if (val1 == 'T' && val2 == 'T'){
+                return 'T';
+            } else {
+                return 'F';
+            }
+        case '!':
+            Flag = eval(a->l); 
+            val1 = inRoom(1);
+            if (val1 == 'T' ){
+                return 'F';
+            } else {
+                return 'T';
+            }
+
+        case 'N': 
             Flag = eval(a->l); 
             val = inRoom(1);
             break;
@@ -363,19 +401,19 @@ void move(int step){
         case 'F':
             switch(Flag){
                 case 'l':
-                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) через стену\n", count, ArrRobot[0] , ArrRobot[1] - step);
+                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) в стену\n", count, ArrRobot[0] , ArrRobot[1] - step);
                     exit(0);
                     break;
                 case 'r':
-                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) через стену\n", count, ArrRobot[0] , ArrRobot[1] + step);
+                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) в стену\n", count, ArrRobot[0] , ArrRobot[1] + step);
                     exit(0);
                     break;
                 case 'd':
-                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) через стену\n", count, ArrRobot[0] + step , ArrRobot[1] );
+                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) в стену\n", count, ArrRobot[0] + step , ArrRobot[1] );
                     exit(0);
                     break;
                 case 'u':
-                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) через стену\n", count, ArrRobot[0] - step , ArrRobot[1] );
+                    fprintf(yyout, "%d) Erorr: робот пытается пройти в координату (%d,%d) в стену\n", count, ArrRobot[0] - step , ArrRobot[1] );
                     exit(0);
                     break;
             }
@@ -415,9 +453,12 @@ void treeFree(struct ast *a){
     switch(a->nodetype){
         
         case 'm':
+        case '&':
+        case '|':
             treeFree(a->r);
 
-        case 'c':
+        case '!':
+        case 'N':
         case 'b':
         case 'a':
         case 'e':

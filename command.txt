@@ -1,16 +1,15 @@
-down(1);
-take_order();
-while(right is clear){
-    right(1);
-}
-if(down is clear){
-    down(2);
-}
-give_the_order();
-if(down is clear){
+while(right is clear && down is clear){
     down(1);
 }
-else{
+take_order();
+if(right is clear){
+    right(1);
+}
+while(! right is clear){
+    down(1);
+}
+give_the_order();
+if(down is clear || up is clear){
     right(2);
 }
 give_the_order();

@@ -23,7 +23,9 @@
 
 "is"   { return IS; }
 "clear"   { return CLEAR; }
-
+"&&"  { return AND;}
+"||" { return OR;}
+"!" { return NOT;}
 
 "up" { return UP; }
 "down" { return DOWN; }
@@ -31,7 +33,7 @@
 "right" { return RIGHT; }
 
 
- /* act */
+ /* actions */
 "take_order" { return TAKEORDER; }
 "give_the_order" { return GIVETHEORDER; }
 
